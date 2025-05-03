@@ -1,40 +1,77 @@
-﻿using InventoryTask.Entities;
+﻿using InventoryTask.Dtos.WareHouse;
+using InventoryTask.Entities;
 using InventoryTask.Repository.Interfaces;
 using InventoryTask.Service.Interfaces;
 
 namespace InventoryTask.Service.Services
 {
-    public class WareHouseService(IGenericRepository<Warehouse> WareHouseRepository) : IWareHouseService
+    public class WarehouseService(IGenericRepository<Warehouse> WarehouseRepository) : IWareHouseService
     {
-
-        public async Task AddAsync(Warehouse Item)
+        public async Task AddAsync(WareHouseRequest Warehouse)
         {
-            await WareHouseRepository.AddAsync(Item);
+
+            var WarehouseToDb = new Warehouse
+            {
+                Name = Warehouse.Name,
+                Location = Warehouse.Location,
+
+            };
+
+            await WarehouseRepository.AddAsync(WarehouseToDb);
+            await WarehouseRepository.SaveAsync();
         }
 
-        public async Task<bool> DeleteAsync(int ID)
+        public async Task DeleteAsync(int id)
         {
-            return await WareHouseRepository.DeleteAsync(ID);
+            var deleted = await WarehouseRepository.DeleteAsync(id);
+            if (!deleted)
+            {
+                throw new Exception($"Warehouse with ID {id} not found.");
+            }
+            await WarehouseRepository.SaveAsync();
         }
 
-        public async Task<List<Warehouse>> GetAllAsync()
+        public async Task<List<WareHouseResponce>> GetAllAsync()
         {
-            return await WareHouseRepository.GetAllAsync();
+            var WarehousesfromDB = await WarehouseRepository.GetAllAsync();
+
+            var Warehouses = WarehousesfromDB.Select(p => new WareHouseResponce
+            {
+                ID = p.ID,
+                Name = p.Name,
+                Location = p.Location
+            }).ToList();
+
+            return Warehouses;
         }
 
-        public async Task<Warehouse> GetByIDAsync(int ID)
+        public async Task<WareHouseResponce> GetByIdAsync(int id)
         {
-            return await WareHouseRepository.GetByIDAsync(ID);
+            var WarehousefromDB = await WarehouseRepository.GetByIDAsync(id);
+            if (WarehousefromDB == null) { return null; }
+            WareHouseResponce Warehouse = new WareHouseResponce
+            {
+                ID = WarehousefromDB.ID,
+                Name = WarehousefromDB.Name,
+                Location = WarehousefromDB.Location
+            };
+            return Warehouse;
         }
 
-        public Task SaveAsync()
+        public async Task UpdateAsync(WareHouseResponce Warehouse)
         {
-            return WareHouseRepository.SaveAsync();
-        }
+            var WarehouseFromDB = await WarehouseRepository.GetByIDAsync(Warehouse.ID);
 
-        public async Task UpdateAsync(Warehouse Item)
-        {
-            await WareHouseRepository.SaveAsync();
+            if (WarehouseFromDB == null)
+            {
+                return;
+            }
+
+            WarehouseFromDB.Name = Warehouse.Name;
+            WarehouseFromDB.Location = Warehouse.Location;
+
+            WarehouseRepository.UpdateAsync(WarehouseFromDB);
+            await WarehouseRepository.SaveAsync();
         }
     }
 }

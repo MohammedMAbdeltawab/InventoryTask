@@ -1,39 +1,81 @@
-﻿using InventoryTask.Entities;
+﻿using InventoryTask.Data;
+using InventoryTask.Dtos.ProductWareHouse;
+using InventoryTask.Entities;
 using InventoryTask.Repository.Interfaces;
 using InventoryTask.Service.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventoryTask.Service.Services
 {
-    public class ProductWarehouseService(IGenericRepository<ProductWarehouse> ProductWarehouseRepository) : IProductWarehouseService
+    public class ProductWarehouseService(IGenericRepository<ProductWarehouse> ProductWarehouseRepository ,ApplicationDbContext context) : IProductWareHouseService
     {
-
-        public async Task AddAsync(ProductWarehouse Item)
+        public async Task AddAsync(Dtos.ProductWareHouse.ProductWareHouseDto ProductWarehouse)
         {
-            await ProductWarehouseRepository.AddAsync(Item);
+
+            var ProductWarehouseToDb = new ProductWarehouse
+            {
+                ProductID = ProductWarehouse.ProductID,
+                Quantity = ProductWarehouse.Quantity,
+                WarehouseID = ProductWarehouse.WarehouseID,
+               
+            };
+
+            await ProductWarehouseRepository.AddAsync(ProductWarehouseToDb);
+            await ProductWarehouseRepository.SaveAsync();
         }
 
-        public async Task<bool> DeleteAsync(int ID)
+        public async Task DeleteAsync(int id)
         {
-            return await ProductWarehouseRepository.DeleteAsync(ID);
+            var deleted = await ProductWarehouseRepository.DeleteAsync(id);
+            if (!deleted)
+            {
+                throw new Exception($"ProductWarehouse with ID {id} not found.");
+            }
+            await ProductWarehouseRepository.SaveAsync();
         }
 
-        public async Task<List<ProductWarehouse>> GetAllAsync()
+        public async Task<List<Dtos.ProductWareHouse.ProductWareHouseDto>> GetAllAsync()
         {
-            return await ProductWarehouseRepository.GetAllAsync();
+            var ProductWarehousesfromDB = await ProductWarehouseRepository.GetAllAsync();
+
+            var ProductWarehouses = ProductWarehousesfromDB.Select(p => new ProductWareHouseDto
+            {
+                ProductID = p.ProductID,
+                Quantity = p.Quantity,
+                WarehouseID = p.WarehouseID
+            }).ToList();
+
+            return ProductWarehouses;
         }
 
-        public async Task<ProductWarehouse> GetByIDAsync(int ID)
+        public async Task<Dtos.ProductWareHouse.ProductWareHouseDto> GetByIdAsync(int id)
         {
-            return await ProductWarehouseRepository.GetByIDAsync(ID);
+            var ProductWarehousefromDB = await ProductWarehouseRepository.GetByIDAsync(id);
+            if (ProductWarehousefromDB == null) { return null; }
+            Dtos.ProductWareHouse.ProductWareHouseDto ProductWarehouse = new Dtos.ProductWareHouse.ProductWareHouseDto
+            {
+                ProductID = ProductWarehousefromDB.ProductID,
+                Quantity = ProductWarehousefromDB.Quantity,
+                WarehouseID = ProductWarehousefromDB.WarehouseID,
+            };
+            return ProductWarehouse;
         }
 
-        public Task SaveAsync()
+        public async Task UpdateAsync(Dtos.ProductWareHouse.ProductWareHouseDto ProductWarehouse)
         {
-            return ProductWarehouseRepository.SaveAsync();
-        }
+            // Take care of the context
+            var ProductWarehouseFromDB =await context.ProductWarehouses.FirstOrDefaultAsync(p => p.WarehouseID == ProductWarehouse.WarehouseID && p.ProductID == ProductWarehouse.ProductID);
 
-        public async Task UpdateAsync(ProductWarehouse Item)
-        {
+            if (ProductWarehouseFromDB == null)
+            {
+                return;
+            }
+
+            ProductWarehouseFromDB.ProductID = ProductWarehouse.ProductID;
+            ProductWarehouseFromDB.WarehouseID = ProductWarehouse.WarehouseID;
+            ProductWarehouseFromDB.Quantity = ProductWarehouse.Quantity;
+
+            ProductWarehouseRepository.UpdateAsync(ProductWarehouseFromDB);
             await ProductWarehouseRepository.SaveAsync();
         }
     }

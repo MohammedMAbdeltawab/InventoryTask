@@ -32,9 +32,9 @@ namespace InventoryTask.Service.Services
             return CategoryRepository.SaveAsync();
         }
 
-        public async Task UpdateAsync(Category Item)
+        public void UpdateAsync(Category Item)
         {
-            await CategoryRepository.SaveAsync();
+             CategoryRepository.SaveAsync();
         }
     }
 }

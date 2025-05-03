@@ -42,10 +42,10 @@ namespace InventoryTask.Repository.Reposatories
             return false;
         }
 
-        public async Task UpdateAsync(T Item)
+        public void UpdateAsync(T Item)
         {
              dbSet.Update(Item);
-            await SaveAsync();
+            //await SaveAsync();
 
         }
         public async Task SaveAsync()
